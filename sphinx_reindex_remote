@@ -2,36 +2,36 @@
 
 export PATH=$PATH:/usr/local/bin
 
-ND_DIR="/home/so/noodoo/current/"
+ND_DIR="/var/www/apps/current"
 NODE_ENV="production"
 
+SSH="ssh -t user@server"
 SEARCHD="sudo /etc/init.d/searchd"
 INDEXER="sudo -u sphinx /usr/bin/indexer"
 
 SPHINX_CONF="/etc/sphinx/conf.d/"
 INDEX_DIRS="/usr/local/var/data/"
-ORGS=( "people" "shipments" "boards" )
+ORGS=( "people" "orchid" )
 
 function main {
-
-  $SEARCHD stop
+  $SSH $SEARCHD stop
 
   print "> Flushing all indexes.."
-  cd $INDEX_DIRS &&
-  for d in */ ; do
-    print "removing all files from $INDEX_DIRS$d"
-    rm -fv $INDEX_DIRS$d*
-  done
+  $SSH "cd $INDEX_DIRS;
+  for d in "'*'"; do
+    echo \"removing all files from $INDEX_DIRS"'$d'\""
+    rm -f -v $INDEX_DIRS"'$d/*'"
+  done"
 
-  print "> Load sphinx standart indexes.."
-  $INDEXER --all
+  print "> Create sphinx standart indexes.."
+  $SSH $INDEXER --all
 
-  $SEARCHD start
+  $SSH $SEARCHD start
 
   cd $ND_DIR &&
-  print "> Building rt indexes.."
+  print "> Building sphinx rt indexes.."
   for o in "${ORGS[@]}"; do
-    print "building rt indexes for "$o
+    print "reindex rt indexes for "$o
     NODE_ENV=$NODE_ENV node tasks $o/reindex
   done
 }
@@ -41,7 +41,7 @@ function update_config {
   cd $ND_DIR &&
   for o in "${ORGS[@]}"; do
     print "updating config: "$SPHINX_CONF$o.conf
-    NODE_ENV=$NODE_ENV node tasks $o/sphinx >$SPHINX_CONF$o.conf
+    NODE_ENV=$NODE_ENV node tasks $o/sphinx | $SSH "cat > $SPHINX_CONF$o.conf"
   done
 }
 
