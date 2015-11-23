@@ -5,7 +5,7 @@ export PATH=$PATH:/usr/local/bin
 ND_DIR="/var/www/apps/current"
 NODE_ENV="production"
 
-SSH="ssh -t user@server"
+SSH="ssh -t -t user@server"
 SEARCHD="sudo /etc/init.d/searchd"
 INDEXER="sudo -u sphinx /usr/bin/indexer"
 
