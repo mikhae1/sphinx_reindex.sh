@@ -1,47 +1,63 @@
 #!/usr/bin/env bash
 
-export PATH=$PATH:/usr/local/bin
-
-ND_DIR="/var/www/apps/current"
+ND_DIR="/var/www/noodoo/app"
 NODE_ENV="production"
 
-SSH="ssh -t -t user@server"
+SPHINX_SRVS=( "user@server-clu02" "user@server-clu01" )
 SEARCHD="sudo /etc/init.d/searchd"
 INDEXER="sudo -u sphinx /usr/bin/indexer"
 
 SPHINX_CONF="/etc/sphinx/conf.d/"
 INDEX_DIRS="/usr/local/var/data/"
-ORGS=( "people" "orchid" )
+ORGS=( "acts" "people" )
+
+export PATH=$PATH:/usr/local/bin
 
 function main {
-  $SSH $SEARCHD stop
+  for s in "${SPHINX_SRVS[@]}"; do
+    print "> Running sphinx_reindex for $s"
 
-  print "> Flushing all indexes.."
-  $SSH "cd $INDEX_DIRS;
-  for d in "'*'"; do
-    echo \"removing all files from $INDEX_DIRS"'$d'\""
-    rm -f -v $INDEX_DIRS"'$d/*'"
-  done"
+    SSH="ssh -t $s"
 
-  print "> Create sphinx standart indexes.."
-  $SSH $INDEXER --all
+    $SSH $SEARCHD stop
 
-  $SSH $SEARCHD start
+    sleep 5
+
+    print "> Flushing all indexes on $s.."
+    $SSH "cd $INDEX_DIRS;
+    for d in "'*'"; do
+      echo \"removing all files from $INDEX_DIRS"'$d'\""
+      rm -i -f -v $INDEX_DIRS"'$d/*'"
+    done"
+
+    print "> Create sphinx standart indexes on $s.."
+    $SSH $INDEXER --all
+
+    $SSH $SEARCHD start
+  done
+
+  sleep 5
 
   cd $ND_DIR &&
-  print "> Building sphinx rt indexes.."
+  print "> Building sphinx rt indexes on $s.."
   for o in "${ORGS[@]}"; do
-    print "reindex rt indexes for "$o
+    print "building rt indexes for $o on $s:"
     NODE_ENV=$NODE_ENV node tasks $o/reindex
   done
 }
 
 function update_config {
-  print "Updating sphinx config files.."
-  cd $ND_DIR &&
-  for o in "${ORGS[@]}"; do
-    print "updating config: "$SPHINX_CONF$o.conf
-    NODE_ENV=$NODE_ENV node tasks $o/sphinx | $SSH "cat > $SPHINX_CONF$o.conf"
+  for s in "${SPHINX_SRVS[@]}"; do
+    print "> Running sphinx config update for $s"
+
+    SSH="ssh -t $s"
+
+    print "Updating sphinx config files.."
+    cd $ND_DIR &&
+    for o in "${ORGS[@]}"; do
+      print "updating config: "$SPHINX_CONF$o.conf
+      NODE_ENV=$NODE_ENV timeout 10 node tasks $o/sphinx | $SSH "cat > $SPHINX_CONF$o.conf"
+    done
   done
 }
 
