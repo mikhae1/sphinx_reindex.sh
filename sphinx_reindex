@@ -2,18 +2,16 @@
 
 export PATH=$PATH:/usr/local/bin
 
-ND_DIR="/home/so/noodoo/current/"
+LOCKFILE="/var/run/sphinx_reindex/`basename $0`.lock"
+ND_DIR="/var/www/noodoo/app"
 NODE_ENV="production"
-
 SEARCHD="sudo /etc/init.d/searchd"
 INDEXER="sudo -u sphinx /usr/bin/indexer"
-
 SPHINX_CONF="/etc/sphinx/conf.d/"
 INDEX_DIRS="/usr/local/var/data/"
-ORGS=( "people" "shipments" "boards" )
+ORGS=( "people" "shipments" )
 
 function main {
-
   $SEARCHD stop
 
   print "> Flushing all indexes.."
@@ -41,7 +39,7 @@ function update_config {
   cd $ND_DIR &&
   for o in "${ORGS[@]}"; do
     print "updating config: "$SPHINX_CONF$o.conf
-    NODE_ENV=$NODE_ENV node tasks $o/sphinx >$SPHINX_CONF$o.conf
+    NODE_ENV=$NODE_ENV timeout 20 node tasks $o/sphinx >$SPHINX_CONF$o.conf
   done
 }
 
@@ -61,6 +59,15 @@ function print {
   fi
 }
 
+function lock {
+  if [[ -f $LOCKFILE ]] ; then
+    echo 'Another instance is already running. Leaving.'
+    exit 1
+  fi
+
+  touch $LOCKFILE
+  trap "rm -f -- '$LOCKFILE'" EXIT
+}
 
 if [[ $1 == '-h' || $1 == '--help' ]]; then
   echo -e "Usage: $0 [--update]"
@@ -70,4 +77,5 @@ elif [[ $1 == "update" || $1 == "--update" ]]; then
   update_config
 fi
 
+lock
 main "$@"
