@@ -12,7 +12,7 @@ INDEX_DIRS="/usr/local/var/data/"
 ORGS=( "people" "shipments" )
 
 function main {
-  $SEARCHD stop
+  $SEARCHD stop && sleep 10
 
   print "> Flushing all indexes.."
   cd $INDEX_DIRS &&
@@ -24,7 +24,7 @@ function main {
   print "> Load sphinx standart indexes.."
   $INDEXER --all
 
-  $SEARCHD start
+  $SEARCHD start && sleep 10
 
   cd $ND_DIR &&
   print "> Building rt indexes.."

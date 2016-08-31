@@ -11,17 +11,17 @@ SPHINX_SLAVE='10.116.27.134'
 function main {
   print "> Check cluster status:"
   /opt/cluster/check_cluster.sh || exit 1
-  
+
   print "> Stopping current sphinx reindex process for Sphinx Slave (if any):"
   ssh -t $SPHINX_SLAVE "sudo /etc/init.d/searchd stop"
   sleep 10
 
   print "> Running sphinx reindex for Sphinx Slave: $SPHINX_SLAVE"
   ssh -t $SPHINX_SLAVE "/usr/local/bin/sphinx_reindex_local $1"
-    
+
   print "> Standby current Sphinx node"
   $CLUSTER cluster standby
-    
+
   print "> Running sphinx reindex for Sphinx Master: $SPHINX_MASTER"
   ssh -t $SPHINX_MASTER "/usr/local/bin/sphinx_reindex_local $1"
 
