@@ -4,16 +4,17 @@ export PATH=$PATH:/usr/local/bin
 
 CLUSTER='sudo /usr/sbin/pcs'
 
-SPHINX_MASTER='10.116.27.133'
-SPHINX_SLAVE='10.116.27.134'
+SPHINX_MASTER='sphinx01'
+SPHINX_SLAVE='sphinx02'
 
+#делает реиндекс на второй ноде, останавливает кластер на первой ноде, делает реиндекс на первой ноде, запускает кластер
 
 function main {
   print "> Check cluster status:"
   /opt/cluster/check_cluster.sh || exit 1
 
   print "> Stopping current sphinx reindex process for Sphinx Slave (if any):"
-  ssh -t $SPHINX_SLAVE "sudo /etc/init.d/searchd stop"
+  ssh -t $SPHINX_SLAVE "sudo systemctl stop searchd.service"
   sleep 10
 
   print "> Running sphinx reindex for Sphinx Slave: $SPHINX_SLAVE"
